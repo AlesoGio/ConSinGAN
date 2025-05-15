@@ -12,8 +12,8 @@ import random
 import datetime
 import dateutil.tz
 import copy
-from albumentations import HueSaturationValue, IAAAdditiveGaussianNoise, GaussNoise, OneOf,\
-    Compose, MultiplicativeNoise, ToSepia, ChannelDropout, ChannelShuffle, Cutout, InvertImg
+from albumentations import HueSaturationValue, GaussNoise, OneOf,\
+    Compose, MultiplicativeNoise, ToSepia, ChannelDropout, ChannelShuffle,  InvertImg
 
 from ConSinGAN.imresize import imresize, imresize_in, imresize_to_shape
 
@@ -127,6 +127,8 @@ def calc_gradient_penalty(netD, real_data, fake_data, LAMBDA, device):
 
 def read_image(opt):
     x = img.imread('%s' % (opt.input_name))
+    if len(x.shape) == 2:  # immagine B/N, 2 dimensioni
+        x = np.stack([x]*3, axis=2)  # trasformo in RGB duplicando canali
     x = np2torch(x,opt)
     x = x[:,0:3,:,:]
     return x
@@ -141,6 +143,8 @@ def read_image_dir(dir, opt):
 
 def np2torch(x, opt):
     if opt.nc_im == 3:
+        if x.ndim == 2:
+          x = np.stack([x]*3, axis=2)
         x = x[:,:,:,None]
         x = x.transpose((3, 2, 0, 1))/255
     else:
@@ -371,7 +375,6 @@ class Augment():
             OneOf([
                 OneOf([
                     MultiplicativeNoise(multiplier=[0.5, 1.5], elementwise=True, per_channel=True, p=0.2),
-                    IAAAdditiveGaussianNoise(),
                     GaussNoise()]),
                 OneOf([
                     InvertImg(),
@@ -380,9 +383,7 @@ class Augment():
                     ChannelDropout(channel_drop_range=(1, 1), fill_value=0),
                     ChannelShuffle()]),
                 HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=0.1)],
-                p=0.25),
-            Cutout(num_holes=num_holes, max_h_size=max_h_size, max_w_size=max_w_size,
-                   fill_value=[color_r, color_g, color_b], p=0.9),
+                p=0.25)
         ])
 
     def transform(self, **x):
