@@ -142,21 +142,41 @@ def read_image_dir(dir, opt):
 
 
 def np2torch(x, opt):
+    from skimage import color
+
+    # Se si lavora con immagini RGB (3 canali)
     if opt.nc_im == 3:
+        # Se l'input è in scala di grigi, duplica il canale su RGB
         if x.ndim == 2:
-          x = np.stack([x]*3, axis=2)
-        x = x[:,:,:,None]
-        x = x.transpose((3, 2, 0, 1))/255
+            x = np.stack([x] * 3, axis=2)
+        # Aggiungi dimensione batch e canale
+        x = x[:, :, :, None]
+        # Riorganizza in (B, C, H, W) e normalizza 0–1
+        x = x.transpose((3, 2, 0, 1)) / 255
+
     else:
-        x = color.rgb2gray(x)
-        x = x[:,:,None,None]
-        x = x.transpose(3, 2, 0, 1)
+        # Se l'input ha 3 canali, convertilo in scala di grigi
+        if x.ndim == 3 and x.shape[2] == 3:
+            x = color.rgb2gray(x)
+        # Aggiungi dimensioni canale e batch
+        x = x[:, :, None, None]
+        # Riorganizza in (B, C, H, W)
+        x = x.transpose((3, 2, 0, 1))
+
+    # Da numpy a torch tensor
     x = torch.from_numpy(x)
-    if not(opt.not_cuda):
+
+    # Sposta su GPU se abilitato
+    if not opt.not_cuda:
         x = move_to_gpu(x)
-    x = x.type(torch.cuda.FloatTensor) if not(opt.not_cuda) else x.type(torch.FloatTensor)
+
+    # Imposta il tipo float corretto
+    x = x.type(torch.cuda.FloatTensor) if not opt.not_cuda else x.type(torch.FloatTensor)
+
+    # Normalizzazione standard
     x = norm(x)
     return x
+
 
 
 def torch2uint8(x):
@@ -289,7 +309,7 @@ def dilate_mask(mask,opt):
         element = morphology.disk(radius=20)
     mask = torch2uint8(mask)
     mask = mask[:,:,0]
-    mask = morphology.binary_dilation(mask,selem=element)
+    mask = morphology.binary_dilation(mask, footprint=element)
     mask = filters.gaussian(mask, sigma=5)
     nc_im = opt.nc_im
     opt.nc_im = 1
