@@ -40,6 +40,8 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
     opt = functions.post_config(opt)
+    # disabilito il down-sampling iniziale a 250px
+    opt.scale = 1.0
 
     if opt.fine_tune:
         _gpu = opt.gpu
