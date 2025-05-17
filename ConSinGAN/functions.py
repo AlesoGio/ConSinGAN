@@ -14,7 +14,7 @@ import dateutil.tz
 import copy
 from albumentations import HueSaturationValue, GaussNoise, OneOf,\
     Compose, MultiplicativeNoise, ToSepia, ChannelDropout, ChannelShuffle,  InvertImg
-
+from PIL import Image
 from ConSinGAN.imresize import imresize, imresize_in, imresize_to_shape
 
 
