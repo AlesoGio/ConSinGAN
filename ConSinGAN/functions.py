@@ -73,8 +73,26 @@ def move_to_cpu(t):
     return t
 
 
-def save_image(name, image):
-    plt.imsave(name, convert_image_np(image), vmin=0, vmax=1)
+def save_image(path, tensor, quality=95):
+    """
+    Salva il tensor come immagine:
+      - Estensioni .jpg/.jpeg: salva come JPEG a high quality (default 95)
+      - Altri formati (png, tiff, ecc.): salva no loss
+    """
+    # CHW in numpy, range [0,1] o [0,255]
+    img_np = convert_image_np(tensor)
+    if img_np.max() <= 1:
+        img_uint8 = (img_np * 255).clip(0,255).astype(np.uint8)
+    else:
+        img_uint8 = img_np.astype(np.uint8)
+    # HWC
+    img = Image.fromarray(np.transpose(img_uint8, (1,2,0)))
+    ext = os.path.splitext(path)[1].lower()
+    if ext in ['.jpg', '.jpeg']:
+        img.save(path, format='JPEG', quality=quality, optimize=True)
+    else:
+        # estrae 'PNG' da '.png', 'TIFF' da '.tiff', ecc.
+        img.save(path, format=ext.replace('.', '').upper())
 
 
 def sample_random_noise(depth, reals_shapes, opt):
