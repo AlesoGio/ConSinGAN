@@ -73,26 +73,23 @@ def move_to_cpu(t):
     return t
 
 
-def save_image(path, tensor, quality=95):
-    """
-    Salva il tensor come immagine:
-      - Estensioni .jpg/.jpeg: salva come JPEG a high quality (default 95)
-      - Altri formati (png, tiff, ecc.): salva no loss
-    """
-    # CHW in numpy, range [0,1] o [0,255]
-    img_np = convert_image_np(tensor)
-    if img_np.max() <= 1:
-        img_uint8 = (img_np * 255).clip(0,255).astype(np.uint8)
-    else:
-        img_uint8 = img_np.astype(np.uint8)
-    # HWC
-    img = Image.fromarray(np.transpose(img_uint8, (1,2,0)))
-    ext = os.path.splitext(path)[1].lower()
+def save_image(name, image):
+    """Save a tensor or numpy image array to disk with high quality."""
+    # Convert to numpy array in [0,1]
+    img_np = convert_image_np(image)
+    # Scale to [0,255] and convert to uint8
+    img_uint8 = (img_np * 255).round().astype(np.uint8)
+    # Create PIL image
+    img_pil = Image.fromarray(img_uint8)
+
+    # Determine extension
+    ext = os.path.splitext(name)[1].lower()
     if ext in ['.jpg', '.jpeg']:
-        img.save(path, format='JPEG', quality=quality, optimize=True)
+        # Save JPEG with high quality and no subsampling
+        img_pil.save(name, format='JPEG', quality=95, subsampling=0)
     else:
-        # estrae 'PNG' da '.png', 'TIFF' da '.tiff', ecc.
-        img.save(path, format=ext.replace('.', '').upper())
+        # For PNG, TIFF, etc.
+        img_pil.save(name)
 
 
 def sample_random_noise(depth, reals_shapes, opt):
